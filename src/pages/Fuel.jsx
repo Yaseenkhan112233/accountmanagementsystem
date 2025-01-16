@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const Fuel = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -15,6 +15,14 @@ const Fuel = () => {
     note: "",
   });
 
+  // Load fuel entries from localStorage on component mount
+  useEffect(() => {
+    const savedEntries = localStorage.getItem("fuelEntries");
+    if (savedEntries) {
+      setFuelEntries(JSON.parse(savedEntries));
+    }
+  }, []);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -24,7 +32,11 @@ const Fuel = () => {
   };
 
   const handleSave = () => {
-    setFuelEntries((prev) => [...prev, formData]);
+    const newEntries = [...fuelEntries, formData];
+    setFuelEntries(newEntries);
+    // Save to localStorage
+    localStorage.setItem("fuelEntries", JSON.stringify(newEntries));
+
     setFormData({
       vehicle: "",
       fuelTime: "",
@@ -39,6 +51,7 @@ const Fuel = () => {
     setIsModalOpen(false);
   };
 
+  // Rest of your component code remains the same...
   return (
     <div className="w-full p-6">
       <div className="flex justify-between items-center mb-6">
