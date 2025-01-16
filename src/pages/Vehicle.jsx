@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Plus, X } from "lucide-react";
 
 const Vehicle = () => {
@@ -11,6 +11,14 @@ const Vehicle = () => {
     carModel: "",
   });
 
+  // Load vehicles from localStorage on component mount
+  useEffect(() => {
+    const savedVehicles = localStorage.getItem("vehicles");
+    if (savedVehicles) {
+      setVehicles(JSON.parse(savedVehicles));
+    }
+  }, []);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -21,7 +29,11 @@ const Vehicle = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    setVehicles((prev) => [...prev, formData]);
+    const newVehicles = [...vehicles, formData];
+    setVehicles(newVehicles);
+    // Save to localStorage
+    localStorage.setItem("vehicles", JSON.stringify(newVehicles));
+
     setFormData({
       vehicleName: "",
       driverName: "",
@@ -45,20 +57,43 @@ const Vehicle = () => {
         </button>
       </div>
 
-      {/* Vehicles Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {vehicles.map((vehicle, index) => (
-          <div key={index} className="bg-white p-4 rounded-lg shadow">
-            <h3 className="font-semibold text-lg text-gray-800">
-              {vehicle.vehicleName}
-            </h3>
-            <div className="mt-2 space-y-1">
-              <p className="text-gray-600">Driver: {vehicle.driverName}</p>
-              <p className="text-gray-600">Car Number: {vehicle.carNumber}</p>
-              <p className="text-gray-600">Model: {vehicle.carModel}</p>
-            </div>
-          </div>
-        ))}
+      {/* Table View */}
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse min-w-full">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="text-left p-3 border whitespace-nowrap">
+                Vehicle Name
+              </th>
+              <th className="text-left p-3 border whitespace-nowrap">
+                Driver Name
+              </th>
+              <th className="text-left p-3 border whitespace-nowrap">
+                Car Number
+              </th>
+              <th className="text-left p-3 border whitespace-nowrap">
+                Car Model
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {vehicles.map((vehicle, index) => (
+              <tr key={index} className="hover:bg-gray-50">
+                <td className="p-3 border">{vehicle.vehicleName}</td>
+                <td className="p-3 border">{vehicle.driverName}</td>
+                <td className="p-3 border">{vehicle.carNumber}</td>
+                <td className="p-3 border">{vehicle.carModel}</td>
+              </tr>
+            ))}
+            {vehicles.length === 0 && (
+              <tr>
+                <td colSpan="4" className="text-center p-4 text-gray-500">
+                  No vehicles added yet
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
 
       {/* Modal */}

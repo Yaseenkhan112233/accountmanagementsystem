@@ -4,19 +4,10 @@ import {
   Truck,
   LayoutDashboard,
   Car,
-  Receipt,
   User,
-  LineChart,
-  BadgeDollarSign,
-  Calendar,
-  ClipboardList,
-  Home,
   Wrench,
   Fuel,
   Box,
-  FileText,
-  ClipboardCheck,
-  ShoppingBag,
   BarChart2,
   Settings,
   ChevronDown,
@@ -29,22 +20,13 @@ const Sidebar = () => {
   const [isFleetExpanded, setIsFleetExpanded] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const menuItems = [
-    {
-      icon: <LayoutDashboard size={20} />,
-      label: "Dashboard",
-      path: "/dashboard",
-    },
+  const fleetMenuItems = [
     { icon: <Car size={20} />, label: "Vehicle", path: "/vehicle" },
-
     { icon: <User size={20} />, label: "Driver", path: "/driver" },
-
     { icon: <Wrench size={20} />, label: "Maintenance", path: "/maintenance" },
     { icon: <Fuel size={20} />, label: "Fuel", path: "/fuel" },
     { icon: <Box size={20} />, label: "Parts", path: "/parts" },
-
     { icon: <BarChart2 size={20} />, label: "Report", path: "/report" },
-    { icon: <Settings size={20} />, label: "Settings", path: "/settings" },
   ];
 
   return (
@@ -67,21 +49,28 @@ const Sidebar = () => {
 
       {/* Sidebar */}
       <div
-        className={`
-        fixed top-0 left-0 h-screen bg-gray-900 text-white z-40
-        transform transition-transform duration-300 ease-in-out
+        className={`fixed top-0 left-0 h-screen bg-gray-900 text-white z-40 transform transition-transform duration-300 ease-in-out
         lg:translate-x-0 lg:static lg:w-64
-        ${isMobileMenuOpen ? "translate-x-0 w-64" : "-translate-x-full"}
-      `}
+        ${isMobileMenuOpen ? "translate-x-0 w-64" : "-translate-x-full"}`}
       >
-        {/* Fleet Header */}
+        {/* Dashboard Link */}
+        <div className="p-4">
+          <Link
+            to="/dashboard"
+            className="flex items-center gap-3 p-4 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors duration-150"
+          >
+            <LayoutDashboard size={20} />
+            <span className="text-sm">Dashboard</span>
+          </Link>
+        </div>
+
         <div
           className="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-800"
           onClick={() => setIsFleetExpanded(!isFleetExpanded)}
         >
           <div className="flex items-center gap-3">
             <Truck size={24} />
-            <span className="font-semibold">Fleet</span>
+            <span className="font-semibold">Expenses</span>
           </div>
           {isFleetExpanded ? (
             <ChevronDown size={20} />
@@ -90,10 +79,10 @@ const Sidebar = () => {
           )}
         </div>
 
-        {/* Navigation Items */}
+        {/* Fleet Navigation Items */}
         {isFleetExpanded && (
           <div className="flex-1 overflow-y-auto">
-            {menuItems.map((item, index) => (
+            {fleetMenuItems.map((item, index) => (
               <Link
                 key={index}
                 to={item.path}
@@ -106,6 +95,17 @@ const Sidebar = () => {
             ))}
           </div>
         )}
+
+        {/* Settings Link */}
+        <div className="p-4">
+          <Link
+            to="/settings"
+            className="flex items-center gap-3 p-4 hover:bg-gray-800 transition-colors duration-150"
+          >
+            <Settings size={20} />
+            <span className="text-sm">Settings</span>
+          </Link>
+        </div>
       </div>
     </>
   );
