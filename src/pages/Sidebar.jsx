@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import {
   Truck,
   LayoutDashboard,
@@ -26,7 +26,6 @@ const Sidebar = () => {
     { icon: <Wrench size={20} />, label: "Maintenance", path: "/maintenance" },
     { icon: <Fuel size={20} />, label: "Fuel", path: "/fuel" },
     { icon: <Box size={20} />, label: "Parts", path: "/parts" },
-    { icon: <BarChart2 size={20} />, label: "Report", path: "/report" },
   ];
 
   return (
@@ -54,16 +53,21 @@ const Sidebar = () => {
         ${isMobileMenuOpen ? "translate-x-0 w-64" : "-translate-x-full"}`}
       >
         {/* Dashboard Link */}
-        <div className="p-4">
-          <Link
+        <div className="p-2">
+          <NavLink
             to="/dashboard"
-            className="flex items-center gap-3 p-4 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors duration-150"
+            className={({ isActive }) =>
+              `flex items-center gap-3 p-4 rounded-lg transition-colors duration-150 ${
+                isActive ? "bg-gray-700" : "hover:bg-gray-800"
+              }`
+            }
           >
             <LayoutDashboard size={20} />
             <span className="text-sm">Dashboard</span>
-          </Link>
+          </NavLink>
         </div>
 
+        {/* Expenses Dropdown */}
         <div
           className="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-800"
           onClick={() => setIsFleetExpanded(!isFleetExpanded)}
@@ -83,28 +87,51 @@ const Sidebar = () => {
         {isFleetExpanded && (
           <div className="flex-1 overflow-y-auto">
             {fleetMenuItems.map((item, index) => (
-              <Link
+              <NavLink
                 key={index}
                 to={item.path}
-                className="flex items-center gap-3 p-4 hover:bg-gray-800 transition-colors duration-150"
+                className={({ isActive }) =>
+                  `flex items-center gap-3 p-4 transition-colors duration-150 ${
+                    isActive ? "bg-gray-700" : "hover:bg-gray-800"
+                  }`
+                }
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 {item.icon}
                 <span className="text-sm">{item.label}</span>
-              </Link>
+              </NavLink>
             ))}
           </div>
         )}
 
+        {/* Report Link */}
+        <div className="p-1">
+          <NavLink
+            to="/report"
+            className={({ isActive }) =>
+              `flex items-center gap-3 p-4 transition-colors duration-150 ${
+                isActive ? "bg-gray-700" : "hover:bg-gray-800"
+              }`
+            }
+          >
+            <BarChart2 size={20} />
+            <span className="text-sm">Report</span>
+          </NavLink>
+        </div>
+
         {/* Settings Link */}
-        <div className="p-4">
-          <Link
+        <div className="p-1">
+          <NavLink
             to="/settings"
-            className="flex items-center gap-3 p-4 hover:bg-gray-800 transition-colors duration-150"
+            className={({ isActive }) =>
+              `flex items-center gap-3 p-4 transition-colors duration-150 ${
+                isActive ? "bg-gray-700" : "hover:bg-gray-800"
+              }`
+            }
           >
             <Settings size={20} />
             <span className="text-sm">Settings</span>
-          </Link>
+          </NavLink>
         </div>
       </div>
     </>
