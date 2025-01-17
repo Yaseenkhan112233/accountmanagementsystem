@@ -1,42 +1,3 @@
-// import React from "react";
-// import {
-//   BrowserRouter as Router,
-//   Routes,
-//   Route,
-//   Navigate,
-// } from "react-router-dom";
-// import Sidebar from "./pages/Sidebar"; // Adjust the path based on your project structure
-// import Dashboard from "./pages/Dashboard"; // Replace with the correct component paths
-// import Vehicle from "./pages/Vehicle";
-// import Transaction from "./pages/Transiction";
-// import Driver from "./pages/Drivers";
-// import Fuel from "./pages/Fuel";
-
-// // Import other pages...
-
-// const App = () => {
-//   return (
-//     <Router>
-//       <div className="flex">
-//         <Sidebar />
-
-//         <div className="flex-1 h-screen overflow-y-auto bg-gray-100 p-6">
-//           <Routes>
-//             <Route path="/" element={<Navigate to="/dashboard" replace />} />
-
-//             <Route path="/dashboard" element={<Dashboard />} />
-//             <Route path="/vehicle" element={<Vehicle />} />
-//             <Route path="/transactions" element={<Transaction />} />
-//             <Route path="/driver" element={<Driver />} />
-//             <Route path="/fuel" element={<Fuel />} />
-//           </Routes>
-//         </div>
-//       </div>
-//     </Router>
-//   );
-// };
-
-// export default App;import React, { useEffect, useState } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -50,7 +11,10 @@ import Driver from "./pages/Drivers";
 import Fuel from "./pages/Fuel";
 import LoginPage from "./pages/LoginPage";
 import Setting from "./pages/Setting"; // Import Setting component
+import Report from "./pages/Report"; // Import Report component
 import { useEffect, useState } from "react";
+import Maintenance from "./pages/Maintenance";
+import Parts from "./pages/Parts";
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -125,6 +89,28 @@ const App = () => {
                 ) : (
                   <Navigate to="/login" replace />
                 )
+              }
+            />
+            <Route
+              path="/report"
+              element={
+                isAuthenticated ? <Report /> : <Navigate to="/login" replace />
+              }
+            />
+            <Route
+              path="/Maintenance"
+              element={
+                isAuthenticated ? (
+                  <Maintenance />
+                ) : (
+                  <Navigate to="/login" replace />
+                )
+              }
+            />
+            <Route
+              path="/Parts"
+              element={
+                isAuthenticated ? <Parts /> : <Navigate to="/login" replace />
               }
             />
 
