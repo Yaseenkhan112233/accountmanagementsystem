@@ -1,3 +1,4 @@
+import React, { useEffect, useState } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -5,24 +6,36 @@ import {
   Navigate,
 } from "react-router-dom";
 import Sidebar from "./pages/Sidebar";
-import Dashboard from "./pages/Dashboard";
+import Dashboard from "./pages/Dashboard/Dashboard";
 import Vehicle from "./pages/Vehicle";
 import Driver from "./pages/Drivers";
 import Fuel from "./pages/Fuel";
 import LoginPage from "./pages/LoginPage";
-import Setting from "./pages/Setting"; // Import Setting component
-import Report from "./pages/Report"; // Import Report component
-import { useEffect, useState } from "react";
+import Setting from "./pages/Setting/Setting";
 import Maintenance from "./pages/Maintenance";
 import Parts from "./pages/Parts";
+
+import NewIncome from "./pages/sales/NewInvoice";
+import ManageIncome from "./pages/sales/ManageInvoice";
+import NewClient from "./pages/Clients/NewClients";
+import ManageClients from "./pages/Clients/ManageClients";
+import NewSupplier from "./pages/Suppliers/NewSupplier";
+import ManageSuppliers from "./pages/Suppliers/ManageSupplier";
+import ViewTransaction from "./pages/Transaction/ViewTransaction";
+import NewTransaction from "./pages/Transaction/NewTransaction";
+import Income from "./pages/Transaction/Income";
+import Expense from "./pages/Transaction/Expense";
+import CustomerStatement from "./pages/Report/CustomerStatement";
+import SupplierStatement from "./pages/Report/SupplierStatement";
+import CalculateIncome from "./pages/Setting/CalculateIncome";
+import CalculateExpense from "./pages/Setting/CalculateExpemse";
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    // Check if the token exists in localStorage
     const token = localStorage.getItem("authToken");
-    setIsAuthenticated(!!token); // Convert to boolean
+    setIsAuthenticated(!!token);
   }, []);
 
   const handleLogin = () => {
@@ -34,13 +47,16 @@ const App = () => {
     setIsAuthenticated(false);
   };
 
+  const ProtectedRoute = ({ element }) => {
+    return isAuthenticated ? element : <Navigate to="/login" replace />;
+  };
+
   return (
     <Router>
       <div className="flex">
-        {isAuthenticated && <Sidebar />} {/* Only show Sidebar if logged in */}
+        {isAuthenticated && <Sidebar />}
         <div className="flex-1 h-screen overflow-y-auto bg-gray-100 p-6">
           <Routes>
-            {/* Login route */}
             <Route
               path="/login"
               element={
@@ -52,69 +68,106 @@ const App = () => {
               }
             />
 
-            {/* Protected routes */}
             <Route
               path="/dashboard"
               element={
-                isAuthenticated ? (
-                  <Dashboard onLogout={handleLogout} />
-                ) : (
-                  <Navigate to="/login" replace />
-                )
-              }
-            />
-            <Route
-              path="/vehicle"
-              element={
-                isAuthenticated ? <Vehicle /> : <Navigate to="/login" replace />
-              }
-            />
-            <Route
-              path="/driver"
-              element={
-                isAuthenticated ? <Driver /> : <Navigate to="/login" replace />
-              }
-            />
-            <Route
-              path="/fuel"
-              element={
-                isAuthenticated ? <Fuel /> : <Navigate to="/login" replace />
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                isAuthenticated ? (
-                  <Setting onLogout={handleLogout} />
-                ) : (
-                  <Navigate to="/login" replace />
-                )
-              }
-            />
-            <Route
-              path="/report"
-              element={
-                isAuthenticated ? <Report /> : <Navigate to="/login" replace />
-              }
-            />
-            <Route
-              path="/Maintenance"
-              element={
-                isAuthenticated ? (
-                  <Maintenance />
-                ) : (
-                  <Navigate to="/login" replace />
-                )
-              }
-            />
-            <Route
-              path="/Parts"
-              element={
-                isAuthenticated ? <Parts /> : <Navigate to="/login" replace />
+                <ProtectedRoute
+                  element={<Dashboard onLogout={handleLogout} />}
+                />
               }
             />
 
-            {/* Default route */}
+            {/* Fleet Management Routes */}
+            <Route
+              path="/vehicle"
+              element={<ProtectedRoute element={<Vehicle />} />}
+            />
+            <Route
+              path="/driver"
+              element={<ProtectedRoute element={<Driver />} />}
+            />
+            <Route
+              path="/maintenance"
+              element={<ProtectedRoute element={<Maintenance />} />}
+            />
+            <Route
+              path="/fuel"
+              element={<ProtectedRoute element={<Fuel />} />}
+            />
+            <Route
+              path="/parts"
+              element={<ProtectedRoute element={<Parts />} />}
+            />
+
+            {/* Sales Routes */}
+            <Route
+              path="/sales/new-income"
+              element={<ProtectedRoute element={<NewIncome />} />}
+            />
+            <Route
+              path="/sales/manage-income"
+              element={<ProtectedRoute element={<ManageIncome />} />}
+            />
+
+            {/* Clients Routes */}
+            <Route
+              path="/clients/new-client"
+              element={<ProtectedRoute element={<NewClient />} />}
+            />
+            <Route
+              path="/clients/manage-clients"
+              element={<ProtectedRoute element={<ManageClients />} />}
+            />
+
+            {/* Suppliers Routes */}
+            <Route
+              path="/suppliers/new-supplier"
+              element={<ProtectedRoute element={<NewSupplier />} />}
+            />
+            <Route
+              path="/suppliers/manage-suppliers"
+              element={<ProtectedRoute element={<ManageSuppliers />} />}
+            />
+
+            {/* Transactions Routes */}
+            <Route
+              path="/transactions/view"
+              element={<ProtectedRoute element={<ViewTransaction />} />}
+            />
+            <Route
+              path="/transactions/new"
+              element={<ProtectedRoute element={<NewTransaction />} />}
+            />
+            <Route
+              path="/transactions/income"
+              element={<ProtectedRoute element={<Income />} />}
+            />
+            <Route
+              path="/transactions/expense"
+              element={<ProtectedRoute element={<Expense />} />}
+            />
+
+            {/* Reports Routes */}
+            <Route
+              path="/reports/customer-statement"
+              element={<ProtectedRoute element={<CustomerStatement />} />}
+            />
+            <Route
+              path="/reports/supplier-statement"
+              element={<ProtectedRoute element={<SupplierStatement />} />}
+            />
+
+            {/* Settings Routes */}
+            <Route
+              path="/settings/calculate-income"
+              element={<ProtectedRoute element={<CalculateIncome />} />}
+            />
+            <Route
+              path="/settings/calculate-expense"
+              element={<ProtectedRoute element={<CalculateExpense />} />}
+            />
+
+            {/* Default Route */}
             <Route
               path="/"
               element={
