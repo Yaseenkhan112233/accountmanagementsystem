@@ -166,6 +166,10 @@ const App = () => {
               path="/settings/calculate-expense"
               element={<ProtectedRoute element={<CalculateExpense />} />}
             />
+            <Route
+              path="/settings/setting"
+              element={<ProtectedRoute element={<Setting />} />}
+            />
 
             {/* Default Route */}
             <Route
