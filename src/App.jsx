@@ -304,7 +304,9 @@ const App = () => {
               path="/sales/new-income"
               element={
                 <ProtectedRoute
-                  element={<NewIncome addInvoice={addInvoice} />}
+                  element={
+                    <NewIncome addInvoice={addInvoice} invoices={invoices} />
+                  }
                 />
               }
             />

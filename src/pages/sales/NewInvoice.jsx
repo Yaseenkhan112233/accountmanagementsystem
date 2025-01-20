@@ -1,7 +1,7 @@
 // import React, { useState } from "react";
 // import { PlusCircle } from "lucide-react";
 
-// const InvoiceForm = ({ onAddInvoice }) => {
+// const InvoiceForm = ({ addInvoice }) => {
 //   // State to control modal visibility
 //   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -61,71 +61,20 @@
 //   };
 
 //   // Handle form submission
-//   // const handleAddClient = (e) => {
-//   //   e.preventDefault();
-
-//   //   // Create a combined invoice object
-//   //   const invoiceData = {
-//   //     billingAddress,
-//   //     shippingAddress,
-//   //     date: new Date().toISOString().split("T")[0],
-//   //   };
-
-//   //   // Send data to parent component
-//   //   if (onAddInvoice) {
-//   //     onAddInvoice(invoiceData);
-//   //   }
-
-//   //   // Reset form states
-//   //   setBillingAddress({
-//   //     name: "",
-//   //     phone: "",
-//   //     email: "",
-//   //     address: "",
-//   //     city: "",
-//   //     region: "",
-//   //     country: "",
-//   //     postBox: "",
-//   //   });
-//   //   setShippingAddress({
-//   //     name: "",
-//   //     phone: "",
-//   //     email: "",
-//   //     address: "",
-//   //     city: "",
-//   //     region: "",
-//   //     country: "",
-//   //     postBox: "",
-//   //   });
-//   //   setSameAsBilling(false);
-//   //   closeModal();
-//   // };
 //   const handleAddClient = (e) => {
 //     e.preventDefault();
-
-//     // Validate required fields
-//     if (
-//       !billingAddress.name ||
-//       !billingAddress.email ||
-//       !billingAddress.address
-//     ) {
-//       alert("Please fill in all required fields for the billing address.");
-//       return;
-//     }
 
 //     // Create a combined invoice object
 //     const invoiceData = {
 //       billingAddress,
-//       shippingAddress: sameAsBilling ? billingAddress : shippingAddress,
+//       shippingAddress,
 //       date: new Date().toISOString().split("T")[0],
-//       amount: Math.floor(Math.random() * 1000) + 100, // Example random amount
+//       amount: "100.00", // Example static amount (change as needed)
 //     };
 
 //     // Send data to parent component
-//     if (onAddInvoice) {
-//       onAddInvoice(invoiceData);
-//     } else {
-//       console.warn("onAddInvoice callback is not provided.");
+//     if (addInvoice) {
+//       addInvoice(invoiceData);
 //     }
 
 //     // Reset form states
@@ -379,14 +328,12 @@
 // };
 
 // export default InvoiceForm;
+
 import React, { useState } from "react";
 import { PlusCircle } from "lucide-react";
 
-const InvoiceForm = ({ addInvoice }) => {
-  // State to control modal visibility
+const InvoiceForm = ({ addInvoice, clients }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  // States for Billing and Shipping addresses
   const [billingAddress, setBillingAddress] = useState({
     name: "",
     phone: "",
@@ -410,6 +357,9 @@ const InvoiceForm = ({ addInvoice }) => {
   });
 
   const [sameAsBilling, setSameAsBilling] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filteredClients, setFilteredClients] = useState([]);
+  const [selectedClient, setSelectedClient] = useState(null);
 
   // Function to open the modal
   const openModal = () => setIsModalOpen(true);
@@ -417,7 +367,7 @@ const InvoiceForm = ({ addInvoice }) => {
   // Function to close the modal
   const closeModal = () => {
     setIsModalOpen(false);
-    setSameAsBilling(false); // Reset the "Same as Billing" state
+    setSameAsBilling(false);
   };
 
   // Handle "Same as Billing" checkbox toggle
@@ -483,6 +433,46 @@ const InvoiceForm = ({ addInvoice }) => {
     closeModal();
   };
 
+  // Search functionality for clients
+  const handleSearchChange = (e) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+
+    // Filter clients based on name or phone
+    const filtered = clients.filter(
+      (client) =>
+        client.name.toLowerCase().includes(query.toLowerCase()) ||
+        client.phone.includes(query)
+    );
+
+    setFilteredClients(filtered);
+  };
+
+  // Handle client selection from the search
+  const handleClientSelect = (client) => {
+    setSelectedClient(client);
+    setBillingAddress({
+      name: client.name,
+      phone: client.phone,
+      email: client.email,
+      address: client.address,
+      city: client.city,
+      region: client.region,
+      country: client.country,
+      postBox: client.postBox,
+    });
+    setShippingAddress({
+      name: client.name,
+      phone: client.phone,
+      email: client.email,
+      address: client.address,
+      city: client.city,
+      region: client.region,
+      country: client.country,
+      postBox: client.postBox,
+    });
+  };
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -503,15 +493,42 @@ const InvoiceForm = ({ addInvoice }) => {
               <label className="text-sm font-medium">Search Client</label>
               <input
                 type="text"
+                value={searchQuery}
+                onChange={handleSearchChange}
                 placeholder="Enter Customer Name or Mobile Number to search"
                 className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
               />
             </div>
 
-            <div>
-              <label className="text-sm font-medium">Client Details</label>
-              <div className="mt-1 h-8 border-b border-gray-200"></div>
-            </div>
+            {filteredClients.length > 0 && (
+              <ul className="mt-2">
+                {filteredClients.map((client) => (
+                  <li
+                    key={client.phone}
+                    onClick={() => handleClientSelect(client)}
+                    className="cursor-pointer text-blue-600"
+                  >
+                    {client.name} ({client.phone})
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {selectedClient && (
+              <div className="mt-4">
+                <h4 className="font-semibold">Client Details</h4>
+                <div className="mt-2">
+                  <p>Name: {selectedClient.name}</p>
+                  <p>Phone: {selectedClient.phone}</p>
+                  <p>Email: {selectedClient.email}</p>
+                  <p>Address: {selectedClient.address}</p>
+                  <p>City: {selectedClient.city}</p>
+                  <p>Region: {selectedClient.region}</p>
+                  <p>Country: {selectedClient.country}</p>
+                  <p>PostBox: {selectedClient.postBox}</p>
+                </div>
+              </div>
+            )}
 
             <div>
               <label className="text-sm font-medium">Warehouse</label>
