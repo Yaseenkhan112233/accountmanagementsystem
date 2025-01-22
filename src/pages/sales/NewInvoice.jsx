@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { PlusCircle } from "lucide-react";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
+import { db } from "../../firbase/firebase"; // Import Firestore
+import { collection, addDoc, getDocs } from "firebase/firestore"; // Firestore methods
 
-const InvoiceForm = ({ addInvoice, clients }) => {
+const InvoiceForm = ({ addInvoice }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [billingAddress, setBillingAddress] = useState({
     name: "",
@@ -15,7 +17,6 @@ const InvoiceForm = ({ addInvoice, clients }) => {
     country: "",
     postBox: "",
   });
-
   const [shippingAddress, setShippingAddress] = useState({
     name: "",
     phone: "",
@@ -26,11 +27,37 @@ const InvoiceForm = ({ addInvoice, clients }) => {
     country: "",
     postBox: "",
   });
-
   const [sameAsBilling, setSameAsBilling] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredClients, setFilteredClients] = useState([]);
   const [selectedClient, setSelectedClient] = useState(null);
+
+  // Invoice Static Fields
+  const [invoiceDate, setInvoiceDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
+  const [invoiceReference, setInvoiceReference] = useState("");
+  const [invoiceNote, setInvoiceNote] = useState("");
+
+  // Fetch clients from Firestore
+  const fetchClients = async (query) => {
+    const querySnapshot = await getDocs(collection(db, "clients"));
+    const clientsData = querySnapshot.docs.map((doc) => doc.data());
+
+    // Filter clients based on the query
+    const filtered = clientsData.filter(
+      (client) =>
+        client.billingAddress.name
+          .toLowerCase()
+          .includes(query.toLowerCase()) ||
+        client.billingAddress.phone.includes(query)
+    );
+
+    setFilteredClients(filtered);
+  };
+
+  // Invoice Number
+  const [invoiceNumber, setInvoiceNumber] = useState(1004); // Static initial value
 
   // Function to open the modal
   const openModal = () => setIsModalOpen(true);
@@ -63,46 +90,49 @@ const InvoiceForm = ({ addInvoice, clients }) => {
   };
 
   // Handle form submission
-  const handleAddClient = (e) => {
+  const handleAddClient = async (e) => {
     e.preventDefault();
 
-    // Create a combined invoice object
-    const invoiceData = {
+    // Create a new client data object
+    const newClient = {
       billingAddress,
       shippingAddress,
-      date: new Date().toISOString().split("T")[0],
-      amount: "100.00", // Example static amount (change as needed)
     };
 
-    // Send data to parent component
-    if (addInvoice) {
-      addInvoice(invoiceData);
-    }
+    // Add client data to Firestore
+    try {
+      await addDoc(collection(db, "clients"), newClient);
 
-    // Reset form states
-    setBillingAddress({
-      name: "",
-      phone: "",
-      email: "",
-      address: "",
-      city: "",
-      region: "",
-      country: "",
-      postBox: "",
-    });
-    setShippingAddress({
-      name: "",
-      phone: "",
-      email: "",
-      address: "",
-      city: "",
-      region: "",
-      country: "",
-      postBox: "",
-    });
-    setSameAsBilling(false);
-    closeModal();
+      // Reset form states
+      setBillingAddress({
+        name: "",
+        phone: "",
+        email: "",
+        address: "",
+        city: "",
+        region: "",
+        country: "",
+        postBox: "",
+      });
+      setShippingAddress({
+        name: "",
+        phone: "",
+        email: "",
+        address: "",
+        city: "",
+        region: "",
+        country: "",
+        postBox: "",
+      });
+      setSameAsBilling(false);
+      closeModal();
+      fetchClients(searchQuery); // Re-fetch clients after adding a new one
+    } catch (e) {
+      console.error("Error adding client: ", e);
+    }
   };
+
+  // Rows for items in the invoice
   const [rows, setRows] = useState([
     {
       itemName: "",
@@ -114,7 +144,7 @@ const InvoiceForm = ({ addInvoice, clients }) => {
     },
   ]);
 
-  // Function to calculate the amount for a row
+  // Calculate the amount for a row
   const calculateAmount = (row) => {
     const tax = (row.rate * row.quantity * row.taxPercentage) / 100;
     const discount = (row.rate * row.quantity * row.discount) / 100;
@@ -155,16 +185,188 @@ const InvoiceForm = ({ addInvoice, clients }) => {
     const query = e.target.value;
     setSearchQuery(query);
 
-    // Filter clients based on name or phone
-    const filtered = clients.filter(
-      (client) =>
-        client.name.toLowerCase().includes(query.toLowerCase()) ||
-        client.phone.includes(query)
-    );
-
-    setFilteredClients(filtered);
+    // Trigger fetch every time the search query changes
+    fetchClients(query);
   };
-  const generateInvoice = () => {
+
+  // Generate invoice PDF
+  // const generateInvoice = () => {
+  //   if (!selectedClient) {
+  //     alert("Please select or add a client before generating an invoice.");
+  //     return;
+  //   }
+
+  //   const doc = new jsPDF();
+
+  //   // Add header
+  //   doc.setFontSize(18);
+  //   doc.text("JLT Transport", 14, 20);
+  //   doc.setFontSize(12);
+  //   doc.text("Invoice", 170, 20);
+  //   doc.setFontSize(10);
+  //   doc.text(`Date: ${invoiceDate}`, 170, 30);
+
+  //   // Billing Info
+  //   doc.setFontSize(12);
+  //   doc.text("Billing Address:", 14, 40);
+  //   doc.setFontSize(10);
+  //   doc.text(`${billingAddress.name}`, 14, 45);
+  //   doc.text(`${billingAddress.address}`, 14, 50);
+  //   doc.text(`${billingAddress.city}, ${billingAddress.region}`, 14, 55);
+  //   doc.text(`${billingAddress.country}`, 14, 60);
+  //   doc.text(`Phone: ${billingAddress.phone}`, 14, 65);
+  //   doc.text(`Email: ${billingAddress.email}`, 14, 70);
+
+  //   // Shipping Info
+  //   doc.setFontSize(12);
+  //   doc.text("Shipping Address:", 120, 40);
+  //   doc.setFontSize(10);
+  //   doc.text(`${shippingAddress.name}`, 120, 45);
+  //   doc.text(`${shippingAddress.address}`, 120, 50);
+  //   doc.text(`${shippingAddress.city}, ${shippingAddress.region}`, 120, 55);
+  //   doc.text(`${shippingAddress.country}`, 120, 60);
+  //   doc.text(`Phone: ${shippingAddress.phone}`, 120, 65);
+  //   doc.text(`Email: ${shippingAddress.email}`, 120, 70);
+
+  //   // Table for invoice items
+  //   const tableRows = rows.map((row) => [
+  //     row.itemName,
+  //     row.rate.toFixed(2),
+  //     row.quantity,
+  //     (row.rate * row.quantity).toFixed(2),
+  //     ((row.taxPercentage * row.rate * row.quantity) / 100).toFixed(2),
+  //     row.discount.toFixed(2),
+  //     row.amount.toFixed(2),
+  //   ]);
+
+  //   const tableHeaders = [
+  //     "Item Name",
+  //     "Rate",
+  //     "Quantity",
+  //     "Subtotal",
+  //     "Tax",
+  //     "Discount",
+  //     "Total",
+  //   ];
+
+  //   doc.autoTable({
+  //     head: [tableHeaders],
+  //     body: tableRows,
+  //     startY: 80,
+  //   });
+
+  //   // Grand total
+  //   const grandTotal = rows
+  //     .reduce((sum, row) => sum + row.amount, 0)
+  //     .toFixed(2);
+  //   doc.setFontSize(12);
+  //   doc.text(`Grand Total: £${grandTotal}`, 14, doc.lastAutoTable.finalY + 10);
+
+  //   // Save the PDF
+  //   doc.save(`invoice_${invoiceNumber}.pdf`);
+
+  //   // Increment the invoice number for the next invoice
+  //   setInvoiceNumber(invoiceNumber + 1);
+  // };
+  // const generateInvoice = async () => {
+  //   if (!selectedClient) {
+  //     alert("Please select or add a client before generating an invoice.");
+  //     return;
+  //   }
+
+  //   const doc = new jsPDF();
+
+  //   // Add header
+  //   doc.setFontSize(18);
+  //   doc.text("JLT Transport", 14, 20);
+  //   doc.setFontSize(12);
+  //   doc.text("Invoice", 170, 20);
+  //   doc.setFontSize(10);
+  //   doc.text(`Date: ${invoiceDate}`, 170, 30);
+
+  //   // Billing Info
+  //   doc.setFontSize(12);
+  //   doc.text("Billing Address:", 14, 40);
+  //   doc.setFontSize(10);
+  //   doc.text(`${billingAddress.name}`, 14, 45);
+  //   doc.text(`${billingAddress.address}`, 14, 50);
+  //   doc.text(`${billingAddress.city}, ${billingAddress.region}`, 14, 55);
+  //   doc.text(`${billingAddress.country}`, 14, 60);
+  //   doc.text(`Phone: ${billingAddress.phone}`, 14, 65);
+  //   doc.text(`Email: ${billingAddress.email}`, 14, 70);
+
+  //   // Shipping Info
+  //   doc.setFontSize(12);
+  //   doc.text("Shipping Address:", 120, 40);
+  //   doc.setFontSize(10);
+  //   doc.text(`${shippingAddress.name}`, 120, 45);
+  //   doc.text(`${shippingAddress.address}`, 120, 50);
+  //   doc.text(`${shippingAddress.city}, ${shippingAddress.region}`, 120, 55);
+  //   doc.text(`${shippingAddress.country}`, 120, 60);
+  //   doc.text(`Phone: ${shippingAddress.phone}`, 120, 65);
+  //   doc.text(`Email: ${shippingAddress.email}`, 120, 70);
+
+  //   // Table for invoice items
+  //   const tableRows = rows.map((row) => [
+  //     row.itemName,
+  //     row.rate.toFixed(2),
+  //     row.quantity,
+  //     (row.rate * row.quantity).toFixed(2),
+  //     ((row.taxPercentage * row.rate * row.quantity) / 100).toFixed(2),
+  //     row.discount.toFixed(2),
+  //     row.amount.toFixed(2),
+  //   ]);
+
+  //   const tableHeaders = [
+  //     "Item Name",
+  //     "Rate",
+  //     "Quantity",
+  //     "Subtotal",
+  //     "Tax",
+  //     "Discount",
+  //     "Total",
+  //   ];
+
+  //   doc.autoTable({
+  //     head: [tableHeaders],
+  //     body: tableRows,
+  //     startY: 80,
+  //   });
+
+  //   // Grand total
+  //   const grandTotal = rows
+  //     .reduce((sum, row) => sum + row.amount, 0)
+  //     .toFixed(2);
+  //   doc.setFontSize(12);
+  //   doc.text(`Grand Total: £${grandTotal}`, 14, doc.lastAutoTable.finalY + 10);
+
+  //   // Save the PDF
+  //   doc.save(`invoice_${invoiceNumber}.pdf`);
+
+  //   // Save invoice data to Firestore
+  //   try {
+  //     const invoiceDetails = {
+  //       invoiceNumber,
+  //       invoiceDate,
+  //       rows, // Store the row data for items
+  //       grandTotal,
+  //     };
+
+  //     await addDoc(collection(db, "invoices"), invoiceDetails);
+  //     setInvoiceData(invoiceDetails); // Store the generated invoice data
+  //     setIsInvoiceSaved(true); // Update save status
+  //     setInvoiceNumber(invoiceNumber + 1); // Increment invoice number for next
+  //     setIsModalOpen(true); // Show modal after save
+  //   } catch (error) {
+  //     console.error("Error saving invoice: ", error);
+  //   }
+  // };
+  const generateInvoice = async () => {
+    if (!selectedClient) {
+      alert("Please select or add a client before generating an invoice.");
+      return;
+    }
+
     const doc = new jsPDF();
 
     // Add header
@@ -173,7 +375,7 @@ const InvoiceForm = ({ addInvoice, clients }) => {
     doc.setFontSize(12);
     doc.text("Invoice", 170, 20);
     doc.setFontSize(10);
-    doc.text(`Date: ${new Date().toLocaleDateString()}`, 170, 30);
+    doc.text(`Date: ${invoiceDate}`, 170, 30);
 
     // Billing Info
     doc.setFontSize(12);
@@ -232,31 +434,50 @@ const InvoiceForm = ({ addInvoice, clients }) => {
     doc.text(`Grand Total: £${grandTotal}`, 14, doc.lastAutoTable.finalY + 10);
 
     // Save the PDF
-    doc.save("invoice.pdf");
+    doc.save(`invoice_${invoiceNumber}.pdf`);
+
+    // Save invoice data to Firestore
+    try {
+      const invoiceDetails = {
+        invoiceNumber,
+        invoiceDate,
+        clientName: selectedClient.billingAddress.name, // Store the client name
+        rows, // Store the row data for items
+        grandTotal,
+      };
+
+      await addDoc(collection(db, "invoices"), invoiceDetails);
+      setInvoiceData(invoiceDetails); // Store the generated invoice data
+      setIsInvoiceSaved(true); // Update save status
+      setInvoiceNumber(invoiceNumber + 1); // Increment invoice number for next
+      setIsModalOpen(true); // Show modal after save
+    } catch (error) {
+      console.error("Error saving invoice: ", error);
+    }
   };
 
   // Handle client selection from the search
   const handleClientSelect = (client) => {
     setSelectedClient(client);
     setBillingAddress({
-      name: client.name,
-      phone: client.phone,
-      email: client.email,
-      address: client.address,
-      city: client.city,
-      region: client.region,
-      country: client.country,
-      postBox: client.postBox,
+      name: client.billingAddress.name,
+      phone: client.billingAddress.phone,
+      email: client.billingAddress.email,
+      address: client.billingAddress.address,
+      city: client.billingAddress.city,
+      region: client.billingAddress.region,
+      country: client.billingAddress.country,
+      postBox: client.billingAddress.postBox,
     });
     setShippingAddress({
-      name: client.name,
-      phone: client.phone,
-      email: client.email,
-      address: client.address,
-      city: client.city,
-      region: client.region,
-      country: client.country,
-      postBox: client.postBox,
+      name: client.billingAddress.name,
+      phone: client.billingAddress.phone,
+      email: client.billingAddress.email,
+      address: client.billingAddress.address,
+      city: client.billingAddress.city,
+      region: client.billingAddress.region,
+      country: client.billingAddress.country,
+      postBox: client.billingAddress.postBox,
     });
   };
 
@@ -287,7 +508,7 @@ const InvoiceForm = ({ addInvoice, clients }) => {
               />
             </div>
 
-            {filteredClients.length > 0 && (
+            {searchQuery && filteredClients.length > 0 && (
               <ul className="mt-2">
                 {filteredClients.map((client) => (
                   <li
@@ -295,7 +516,7 @@ const InvoiceForm = ({ addInvoice, clients }) => {
                     onClick={() => handleClientSelect(client)}
                     className="cursor-pointer text-blue-600"
                   >
-                    {client.name} ({client.phone})
+                    {client.billingAddress.name} ({client.billingAddress.phone})
                   </li>
                 ))}
               </ul>
@@ -305,26 +526,17 @@ const InvoiceForm = ({ addInvoice, clients }) => {
               <div className="mt-4">
                 <h4 className="font-semibold">Client Details</h4>
                 <div className="mt-2">
-                  <p>Name: {selectedClient.name}</p>
-                  <p>Phone: {selectedClient.phone}</p>
-                  <p>Email: {selectedClient.email}</p>
-                  <p>Address: {selectedClient.address}</p>
-                  <p>City: {selectedClient.city}</p>
-                  <p>Region: {selectedClient.region}</p>
-                  <p>Country: {selectedClient.country}</p>
-                  <p>PostBox: {selectedClient.postBox}</p>
+                  <p>Name: {selectedClient.billingAddress.name}</p>
+                  <p>Phone: {selectedClient.billingAddress.phone}</p>
+                  <p>Email: {selectedClient.billingAddress.email}</p>
+                  <p>Address: {selectedClient.billingAddress.address}</p>
+                  <p>City: {selectedClient.billingAddress.city}</p>
+                  <p>Region: {selectedClient.billingAddress.region}</p>
+                  <p>Country: {selectedClient.billingAddress.country}</p>
+                  <p>PostBox: {selectedClient.billingAddress.postBox}</p>
                 </div>
               </div>
             )}
-
-            <div>
-              <label className="text-sm font-medium">Warehouse</label>
-              <select className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500">
-                <option value="all">All</option>
-                <option value="warehouse1">Warehouse 1</option>
-                <option value="warehouse2">Warehouse 2</option>
-              </select>
-            </div>
           </div>
         </div>
 
@@ -337,7 +549,7 @@ const InvoiceForm = ({ addInvoice, clients }) => {
               <label className="text-sm font-medium">Invoice Number</label>
               <input
                 type="text"
-                value="1004"
+                value={invoiceNumber}
                 readOnly
                 className="mt-1 w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-md"
               />
@@ -347,6 +559,8 @@ const InvoiceForm = ({ addInvoice, clients }) => {
               <label className="text-sm font-medium">Reference</label>
               <input
                 type="text"
+                value={invoiceReference}
+                onChange={(e) => setInvoiceReference(e.target.value)}
                 placeholder="Reference #"
                 className="mt-1 w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
               />
@@ -356,7 +570,8 @@ const InvoiceForm = ({ addInvoice, clients }) => {
               <label className="text-sm font-medium">Invoice Date</label>
               <input
                 type="date"
-                defaultValue="2025-01-20"
+                value={invoiceDate}
+                onChange={(e) => setInvoiceDate(e.target.value)}
                 className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
               />
             </div>
@@ -365,7 +580,8 @@ const InvoiceForm = ({ addInvoice, clients }) => {
               <label className="text-sm font-medium">Invoice Due Date</label>
               <input
                 type="date"
-                defaultValue="2025-01-20"
+                value={invoiceDate}
+                onChange={(e) => setInvoiceDate(e.target.value)}
                 className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
               />
             </div>
@@ -392,6 +608,8 @@ const InvoiceForm = ({ addInvoice, clients }) => {
           <div>
             <label className="text-sm font-medium">Invoice Note</label>
             <textarea
+              value={invoiceNote}
+              onChange={(e) => setInvoiceNote(e.target.value)}
               className="mt-1 w-full min-h-[100px] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
               placeholder="Enter note..."
             />
@@ -663,4 +881,317 @@ const InvoiceForm = ({ addInvoice, clients }) => {
     </div>
   );
 };
+
 export default InvoiceForm;
+
+// import React, { useState, useEffect } from "react";
+// import jsPDF from "jspdf";
+// import "jspdf-autotable";
+// import { db } from "../../firbase/firebase"; // Import Firestore
+// import { collection, addDoc } from "firebase/firestore"; // Firestore methods
+
+// const InvoiceForm = () => {
+//   const [isModalOpen, setIsModalOpen] = useState(false);
+//   const [isInvoiceSaved, setIsInvoiceSaved] = useState(false); // To track invoice save status
+//   const [invoiceData, setInvoiceData] = useState(null); // To store generated invoice data
+//   const [invoiceDate, setInvoiceDate] = useState(
+//     new Date().toISOString().split("T")[0]
+//   );
+//   const [invoiceNumber, setInvoiceNumber] = useState(1004); // Static initial value
+
+//   // Rows for items in the invoice
+//   const [rows, setRows] = useState([
+//     {
+//       itemName: "",
+//       quantity: 1,
+//       rate: 0,
+//       taxPercentage: 0,
+//       discount: 0,
+//       amount: 0,
+//     },
+//   ]);
+
+//   // Calculate the amount for a row
+//   const calculateAmount = (row) => {
+//     const tax = (row.rate * row.quantity * row.taxPercentage) / 100;
+//     const discount = (row.rate * row.quantity * row.discount) / 100;
+//     return row.rate * row.quantity + tax - discount;
+//   };
+
+//   // Add a new row
+//   const handleAddRow = () => {
+//     setRows([
+//       ...rows,
+//       {
+//         itemName: "",
+//         quantity: 1,
+//         rate: 0,
+//         taxPercentage: 0,
+//         discount: 0,
+//         amount: 0,
+//       },
+//     ]);
+//   };
+
+//   // Remove a row by index
+//   const handleRemoveRow = (index) => {
+//     const updatedRows = rows.filter((_, i) => i !== index);
+//     setRows(updatedRows);
+//   };
+
+//   // Handle input changes in the rows
+//   const handleRowChange = (index, field, value) => {
+//     const updatedRows = [...rows];
+//     updatedRows[index][field] = value;
+//     updatedRows[index].amount = calculateAmount(updatedRows[index]);
+//     setRows(updatedRows);
+//   };
+
+//   // Generate invoice PDF
+//   const generateInvoice = async () => {
+//     const doc = new jsPDF();
+
+//     // Add header
+//     doc.setFontSize(18);
+//     doc.text("JLT Transport", 14, 20);
+//     doc.setFontSize(12);
+//     doc.text("Invoice", 170, 20);
+//     doc.setFontSize(10);
+//     doc.text(`Date: ${invoiceDate}`, 170, 30);
+
+//     // Table for invoice items
+//     const tableRows = rows.map((row) => [
+//       row.itemName,
+//       row.rate.toFixed(2),
+//       row.quantity,
+//       (row.rate * row.quantity).toFixed(2),
+//       ((row.taxPercentage * row.rate * row.quantity) / 100).toFixed(2),
+//       row.discount.toFixed(2),
+//       row.amount.toFixed(2),
+//     ]);
+
+//     const tableHeaders = [
+//       "Item Name",
+//       "Rate",
+//       "Quantity",
+//       "Subtotal",
+//       "Tax",
+//       "Discount",
+//       "Total",
+//     ];
+
+//     doc.autoTable({
+//       head: [tableHeaders],
+//       body: tableRows,
+//       startY: 40,
+//     });
+
+//     // Grand total
+//     const grandTotal = rows
+//       .reduce((sum, row) => sum + row.amount, 0)
+//       .toFixed(2);
+//     doc.setFontSize(12);
+//     doc.text(`Grand Total: £${grandTotal}`, 14, doc.lastAutoTable.finalY + 10);
+
+//     // Save the PDF
+//     doc.save(`invoice_${invoiceNumber}.pdf`);
+
+//     // Save invoice data to Firestore
+//     try {
+//       const invoiceDetails = {
+//         invoiceNumber,
+//         invoiceDate,
+//         rows, // Store the row data for items
+//         grandTotal,
+//       };
+
+//       await addDoc(collection(db, "invoices"), invoiceDetails);
+//       setInvoiceData(invoiceDetails); // Store the generated invoice data
+//       setIsInvoiceSaved(true); // Update save status
+//       setInvoiceNumber(invoiceNumber + 1); // Increment invoice number for next
+//       setIsModalOpen(true); // Show modal after save
+//     } catch (error) {
+//       console.error("Error saving invoice: ", error);
+//     }
+//   };
+
+//   return (
+//     <div className="p-6 max-w-7xl mx-auto">
+//       <div className="space-y-6">
+//         {/* Rows for invoice items */}
+//         <table className="w-full border-collapse border border-gray-300">
+//           <thead>
+//             <tr className="bg-gray-100">
+//               <th className="border border-gray-300 px-3 py-2">Item Name</th>
+//               <th className="border border-gray-300 px-3 py-2">Quantity</th>
+//               <th className="border border-gray-300 px-3 py-2">Rate</th>
+//               <th className="border border-gray-300 px-3 py-2">Tax (%)</th>
+//               <th className="border border-gray-300 px-3 py-2">Tax</th>
+//               <th className="border border-gray-300 px-3 py-2">Discount</th>
+//               <th className="border border-gray-300 px-3 py-2">Amount (£)</th>
+//               <th className="border border-gray-300 px-3 py-2">Action</th>
+//             </tr>
+//           </thead>
+//           <tbody>
+//             {rows.map((row, index) => (
+//               <tr key={index}>
+//                 <td className="border border-gray-300 px-3 py-2">
+//                   <input
+//                     type="text"
+//                     value={row.itemName}
+//                     onChange={(e) =>
+//                       handleRowChange(index, "itemName", e.target.value)
+//                     }
+//                     className="w-full px-2 py-1 border border-gray-300 rounded"
+//                   />
+//                 </td>
+//                 <td className="border border-gray-300 px-3 py-2">
+//                   <input
+//                     type="number"
+//                     value={row.quantity}
+//                     onChange={(e) =>
+//                       handleRowChange(
+//                         index,
+//                         "quantity",
+//                         parseInt(e.target.value)
+//                       )
+//                     }
+//                     className="w-full px-2 py-1 border border-gray-300 rounded"
+//                   />
+//                 </td>
+//                 <td className="border border-gray-300 px-3 py-2">
+//                   <input
+//                     type="number"
+//                     value={row.rate}
+//                     onChange={(e) =>
+//                       handleRowChange(index, "rate", parseFloat(e.target.value))
+//                     }
+//                     className="w-full px-2 py-1 border border-gray-300 rounded"
+//                   />
+//                 </td>
+//                 <td className="border border-gray-300 px-3 py-2">
+//                   <input
+//                     type="number"
+//                     value={row.taxPercentage}
+//                     onChange={(e) =>
+//                       handleRowChange(
+//                         index,
+//                         "taxPercentage",
+//                         parseFloat(e.target.value)
+//                       )
+//                     }
+//                     className="w-full px-2 py-1 border border-gray-300 rounded"
+//                   />
+//                 </td>
+//                 <td className="border border-gray-300 px-3 py-2">
+//                   £
+//                   {(
+//                     (row.taxPercentage * row.rate * row.quantity) /
+//                     100
+//                   ).toFixed(2)}
+//                 </td>
+//                 <td className="border border-gray-300 px-3 py-2">
+//                   <input
+//                     type="number"
+//                     value={row.discount}
+//                     onChange={(e) =>
+//                       handleRowChange(
+//                         index,
+//                         "discount",
+//                         parseFloat(e.target.value)
+//                       )
+//                     }
+//                     className="w-full px-2 py-1 border border-gray-300 rounded"
+//                   />
+//                 </td>
+//                 <td className="border border-gray-300 px-3 py-2">
+//                   £{row.amount.toFixed(2)}
+//                 </td>
+//                 <td className="border border-gray-300 px-3 py-2 text-center">
+//                   <button
+//                     onClick={() => handleRemoveRow(index)}
+//                     className="text-red-500"
+//                   >
+//                     -
+//                   </button>
+//                 </td>
+//               </tr>
+//             ))}
+//           </tbody>
+//         </table>
+//         <button
+//           onClick={handleAddRow}
+//           className="mt-4 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md"
+//         >
+//           Add Row
+//         </button>
+
+//         {/* Invoice Summary */}
+//         <div className="mt-6 flex justify-end space-x-8">
+//           <div>
+//             <label className="block text-sm font-medium">Total Tax</label>
+//             <p className="text-lg font-semibold">
+//               £
+//               {rows
+//                 .reduce(
+//                   (sum, row) =>
+//                     sum + (row.rate * row.quantity * row.taxPercentage) / 100,
+//                   0
+//                 )
+//                 .toFixed(2)}
+//             </p>
+//           </div>
+//           <div>
+//             <label className="block text-sm font-medium">Total Discount</label>
+//             <p className="text-lg font-semibold">
+//               £
+//               {rows
+//                 .reduce(
+//                   (sum, row) =>
+//                     sum + (row.rate * row.quantity * row.discount) / 100,
+//                   0
+//                 )
+//                 .toFixed(2)}
+//             </p>
+//           </div>
+//           <div>
+//             <label className="block text-sm font-medium">Grand Total</label>
+//             <p className="text-lg font-semibold">
+//               £{rows.reduce((sum, row) => sum + row.amount, 0).toFixed(2)}
+//             </p>
+//           </div>
+//         </div>
+//         <button
+//           onClick={generateInvoice}
+//           className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md"
+//         >
+//           Generate Invoice
+//         </button>
+//       </div>
+
+//       {/* Success Modal */}
+//       {isModalOpen && isInvoiceSaved && (
+//         <div className="fixed inset-0 bg-gray-700 bg-opacity-50 flex justify-center items-center z-50">
+//           <div className="bg-white p-6 rounded-md shadow-lg w-full max-w-3xl">
+//             <h3 className="text-xl font-semibold mb-4">
+//               Invoice Generated Successfully!
+//             </h3>
+//             <p className="text-md mb-4">
+//               Your invoice has been generated and saved.
+//             </p>
+//             <p>Invoice Number: {invoiceData.invoiceNumber}</p>
+//             <p>Grand Total: £{invoiceData.grandTotal}</p>
+//             <button
+//               onClick={() => setIsModalOpen(false)}
+//               className="mt-4 px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white rounded-md"
+//             >
+//               Close
+//             </button>
+//           </div>
+//         </div>
+//       )}
+//     </div>
+//   );
+// };
+
+// export default InvoiceForm;
