@@ -189,85 +189,6 @@ const InvoiceForm = ({ addInvoice }) => {
     fetchClients(query);
   };
 
-  // Generate invoice PDF
-  // const generateInvoice = () => {
-  //   if (!selectedClient) {
-  //     alert("Please select or add a client before generating an invoice.");
-  //     return;
-  //   }
-
-  //   const doc = new jsPDF();
-
-  //   // Add header
-  //   doc.setFontSize(18);
-  //   doc.text("JLT Transport", 14, 20);
-  //   doc.setFontSize(12);
-  //   doc.text("Invoice", 170, 20);
-  //   doc.setFontSize(10);
-  //   doc.text(`Date: ${invoiceDate}`, 170, 30);
-
-  //   // Billing Info
-  //   doc.setFontSize(12);
-  //   doc.text("Billing Address:", 14, 40);
-  //   doc.setFontSize(10);
-  //   doc.text(`${billingAddress.name}`, 14, 45);
-  //   doc.text(`${billingAddress.address}`, 14, 50);
-  //   doc.text(`${billingAddress.city}, ${billingAddress.region}`, 14, 55);
-  //   doc.text(`${billingAddress.country}`, 14, 60);
-  //   doc.text(`Phone: ${billingAddress.phone}`, 14, 65);
-  //   doc.text(`Email: ${billingAddress.email}`, 14, 70);
-
-  //   // Shipping Info
-  //   doc.setFontSize(12);
-  //   doc.text("Shipping Address:", 120, 40);
-  //   doc.setFontSize(10);
-  //   doc.text(`${shippingAddress.name}`, 120, 45);
-  //   doc.text(`${shippingAddress.address}`, 120, 50);
-  //   doc.text(`${shippingAddress.city}, ${shippingAddress.region}`, 120, 55);
-  //   doc.text(`${shippingAddress.country}`, 120, 60);
-  //   doc.text(`Phone: ${shippingAddress.phone}`, 120, 65);
-  //   doc.text(`Email: ${shippingAddress.email}`, 120, 70);
-
-  //   // Table for invoice items
-  //   const tableRows = rows.map((row) => [
-  //     row.itemName,
-  //     row.rate.toFixed(2),
-  //     row.quantity,
-  //     (row.rate * row.quantity).toFixed(2),
-  //     ((row.taxPercentage * row.rate * row.quantity) / 100).toFixed(2),
-  //     row.discount.toFixed(2),
-  //     row.amount.toFixed(2),
-  //   ]);
-
-  //   const tableHeaders = [
-  //     "Item Name",
-  //     "Rate",
-  //     "Quantity",
-  //     "Subtotal",
-  //     "Tax",
-  //     "Discount",
-  //     "Total",
-  //   ];
-
-  //   doc.autoTable({
-  //     head: [tableHeaders],
-  //     body: tableRows,
-  //     startY: 80,
-  //   });
-
-  //   // Grand total
-  //   const grandTotal = rows
-  //     .reduce((sum, row) => sum + row.amount, 0)
-  //     .toFixed(2);
-  //   doc.setFontSize(12);
-  //   doc.text(`Grand Total: £${grandTotal}`, 14, doc.lastAutoTable.finalY + 10);
-
-  //   // Save the PDF
-  //   doc.save(`invoice_${invoiceNumber}.pdf`);
-
-  //   // Increment the invoice number for the next invoice
-  //   setInvoiceNumber(invoiceNumber + 1);
-  // };
   // const generateInvoice = async () => {
   //   if (!selectedClient) {
   //     alert("Please select or add a client before generating an invoice.");
@@ -348,6 +269,7 @@ const InvoiceForm = ({ addInvoice }) => {
   //     const invoiceDetails = {
   //       invoiceNumber,
   //       invoiceDate,
+  //       clientName: selectedClient.billingAddress.name, // Store the client name
   //       rows, // Store the row data for items
   //       grandTotal,
   //     };
@@ -361,11 +283,30 @@ const InvoiceForm = ({ addInvoice }) => {
   //     console.error("Error saving invoice: ", error);
   //   }
   // };
+
+  // Handle client selection from the search
+
   const generateInvoice = async () => {
     if (!selectedClient) {
       alert("Please select or add a client before generating an invoice.");
       return;
     }
+
+    // Fetch the latest invoice number before generating the invoice
+    const fetchLatestInvoiceNumber = async () => {
+      const querySnapshot = await getDocs(collection(db, "invoices"));
+      let latestInvoiceNumber = 1004; // Starting invoice number (or replace with a dynamic value)
+      querySnapshot.forEach((doc) => {
+        const invoice = doc.data();
+        if (invoice.invoiceNumber >= latestInvoiceNumber) {
+          latestInvoiceNumber = invoice.invoiceNumber + 1;
+        }
+      });
+      setInvoiceNumber(latestInvoiceNumber); // Set the next available invoice number
+    };
+
+    // Get the latest invoice number
+    await fetchLatestInvoiceNumber();
 
     const doc = new jsPDF();
 
@@ -444,6 +385,9 @@ const InvoiceForm = ({ addInvoice }) => {
         clientName: selectedClient.billingAddress.name, // Store the client name
         rows, // Store the row data for items
         grandTotal,
+        clientEmail: selectedClient.billingAddress.email,
+        clientAdress: selectedClient.billingAddress.address,
+        clientPhone: selectedClient.billingAddress.phone,
       };
 
       await addDoc(collection(db, "invoices"), invoiceDetails);
@@ -456,7 +400,6 @@ const InvoiceForm = ({ addInvoice }) => {
     }
   };
 
-  // Handle client selection from the search
   const handleClientSelect = (client) => {
     setSelectedClient(client);
     setBillingAddress({
@@ -576,7 +519,7 @@ const InvoiceForm = ({ addInvoice }) => {
               />
             </div>
 
-            <div>
+            {/* <div>
               <label className="text-sm font-medium">Invoice Due Date</label>
               <input
                 type="date"
@@ -602,7 +545,7 @@ const InvoiceForm = ({ addInvoice }) => {
                 <option value="10">10%</option>
                 <option value="15">15%</option>
               </select>
-            </div>
+            </div> */}
           </div>
 
           <div>
@@ -883,315 +826,3 @@ const InvoiceForm = ({ addInvoice }) => {
 };
 
 export default InvoiceForm;
-
-// import React, { useState, useEffect } from "react";
-// import jsPDF from "jspdf";
-// import "jspdf-autotable";
-// import { db } from "../../firbase/firebase"; // Import Firestore
-// import { collection, addDoc } from "firebase/firestore"; // Firestore methods
-
-// const InvoiceForm = () => {
-//   const [isModalOpen, setIsModalOpen] = useState(false);
-//   const [isInvoiceSaved, setIsInvoiceSaved] = useState(false); // To track invoice save status
-//   const [invoiceData, setInvoiceData] = useState(null); // To store generated invoice data
-//   const [invoiceDate, setInvoiceDate] = useState(
-//     new Date().toISOString().split("T")[0]
-//   );
-//   const [invoiceNumber, setInvoiceNumber] = useState(1004); // Static initial value
-
-//   // Rows for items in the invoice
-//   const [rows, setRows] = useState([
-//     {
-//       itemName: "",
-//       quantity: 1,
-//       rate: 0,
-//       taxPercentage: 0,
-//       discount: 0,
-//       amount: 0,
-//     },
-//   ]);
-
-//   // Calculate the amount for a row
-//   const calculateAmount = (row) => {
-//     const tax = (row.rate * row.quantity * row.taxPercentage) / 100;
-//     const discount = (row.rate * row.quantity * row.discount) / 100;
-//     return row.rate * row.quantity + tax - discount;
-//   };
-
-//   // Add a new row
-//   const handleAddRow = () => {
-//     setRows([
-//       ...rows,
-//       {
-//         itemName: "",
-//         quantity: 1,
-//         rate: 0,
-//         taxPercentage: 0,
-//         discount: 0,
-//         amount: 0,
-//       },
-//     ]);
-//   };
-
-//   // Remove a row by index
-//   const handleRemoveRow = (index) => {
-//     const updatedRows = rows.filter((_, i) => i !== index);
-//     setRows(updatedRows);
-//   };
-
-//   // Handle input changes in the rows
-//   const handleRowChange = (index, field, value) => {
-//     const updatedRows = [...rows];
-//     updatedRows[index][field] = value;
-//     updatedRows[index].amount = calculateAmount(updatedRows[index]);
-//     setRows(updatedRows);
-//   };
-
-//   // Generate invoice PDF
-//   const generateInvoice = async () => {
-//     const doc = new jsPDF();
-
-//     // Add header
-//     doc.setFontSize(18);
-//     doc.text("JLT Transport", 14, 20);
-//     doc.setFontSize(12);
-//     doc.text("Invoice", 170, 20);
-//     doc.setFontSize(10);
-//     doc.text(`Date: ${invoiceDate}`, 170, 30);
-
-//     // Table for invoice items
-//     const tableRows = rows.map((row) => [
-//       row.itemName,
-//       row.rate.toFixed(2),
-//       row.quantity,
-//       (row.rate * row.quantity).toFixed(2),
-//       ((row.taxPercentage * row.rate * row.quantity) / 100).toFixed(2),
-//       row.discount.toFixed(2),
-//       row.amount.toFixed(2),
-//     ]);
-
-//     const tableHeaders = [
-//       "Item Name",
-//       "Rate",
-//       "Quantity",
-//       "Subtotal",
-//       "Tax",
-//       "Discount",
-//       "Total",
-//     ];
-
-//     doc.autoTable({
-//       head: [tableHeaders],
-//       body: tableRows,
-//       startY: 40,
-//     });
-
-//     // Grand total
-//     const grandTotal = rows
-//       .reduce((sum, row) => sum + row.amount, 0)
-//       .toFixed(2);
-//     doc.setFontSize(12);
-//     doc.text(`Grand Total: £${grandTotal}`, 14, doc.lastAutoTable.finalY + 10);
-
-//     // Save the PDF
-//     doc.save(`invoice_${invoiceNumber}.pdf`);
-
-//     // Save invoice data to Firestore
-//     try {
-//       const invoiceDetails = {
-//         invoiceNumber,
-//         invoiceDate,
-//         rows, // Store the row data for items
-//         grandTotal,
-//       };
-
-//       await addDoc(collection(db, "invoices"), invoiceDetails);
-//       setInvoiceData(invoiceDetails); // Store the generated invoice data
-//       setIsInvoiceSaved(true); // Update save status
-//       setInvoiceNumber(invoiceNumber + 1); // Increment invoice number for next
-//       setIsModalOpen(true); // Show modal after save
-//     } catch (error) {
-//       console.error("Error saving invoice: ", error);
-//     }
-//   };
-
-//   return (
-//     <div className="p-6 max-w-7xl mx-auto">
-//       <div className="space-y-6">
-//         {/* Rows for invoice items */}
-//         <table className="w-full border-collapse border border-gray-300">
-//           <thead>
-//             <tr className="bg-gray-100">
-//               <th className="border border-gray-300 px-3 py-2">Item Name</th>
-//               <th className="border border-gray-300 px-3 py-2">Quantity</th>
-//               <th className="border border-gray-300 px-3 py-2">Rate</th>
-//               <th className="border border-gray-300 px-3 py-2">Tax (%)</th>
-//               <th className="border border-gray-300 px-3 py-2">Tax</th>
-//               <th className="border border-gray-300 px-3 py-2">Discount</th>
-//               <th className="border border-gray-300 px-3 py-2">Amount (£)</th>
-//               <th className="border border-gray-300 px-3 py-2">Action</th>
-//             </tr>
-//           </thead>
-//           <tbody>
-//             {rows.map((row, index) => (
-//               <tr key={index}>
-//                 <td className="border border-gray-300 px-3 py-2">
-//                   <input
-//                     type="text"
-//                     value={row.itemName}
-//                     onChange={(e) =>
-//                       handleRowChange(index, "itemName", e.target.value)
-//                     }
-//                     className="w-full px-2 py-1 border border-gray-300 rounded"
-//                   />
-//                 </td>
-//                 <td className="border border-gray-300 px-3 py-2">
-//                   <input
-//                     type="number"
-//                     value={row.quantity}
-//                     onChange={(e) =>
-//                       handleRowChange(
-//                         index,
-//                         "quantity",
-//                         parseInt(e.target.value)
-//                       )
-//                     }
-//                     className="w-full px-2 py-1 border border-gray-300 rounded"
-//                   />
-//                 </td>
-//                 <td className="border border-gray-300 px-3 py-2">
-//                   <input
-//                     type="number"
-//                     value={row.rate}
-//                     onChange={(e) =>
-//                       handleRowChange(index, "rate", parseFloat(e.target.value))
-//                     }
-//                     className="w-full px-2 py-1 border border-gray-300 rounded"
-//                   />
-//                 </td>
-//                 <td className="border border-gray-300 px-3 py-2">
-//                   <input
-//                     type="number"
-//                     value={row.taxPercentage}
-//                     onChange={(e) =>
-//                       handleRowChange(
-//                         index,
-//                         "taxPercentage",
-//                         parseFloat(e.target.value)
-//                       )
-//                     }
-//                     className="w-full px-2 py-1 border border-gray-300 rounded"
-//                   />
-//                 </td>
-//                 <td className="border border-gray-300 px-3 py-2">
-//                   £
-//                   {(
-//                     (row.taxPercentage * row.rate * row.quantity) /
-//                     100
-//                   ).toFixed(2)}
-//                 </td>
-//                 <td className="border border-gray-300 px-3 py-2">
-//                   <input
-//                     type="number"
-//                     value={row.discount}
-//                     onChange={(e) =>
-//                       handleRowChange(
-//                         index,
-//                         "discount",
-//                         parseFloat(e.target.value)
-//                       )
-//                     }
-//                     className="w-full px-2 py-1 border border-gray-300 rounded"
-//                   />
-//                 </td>
-//                 <td className="border border-gray-300 px-3 py-2">
-//                   £{row.amount.toFixed(2)}
-//                 </td>
-//                 <td className="border border-gray-300 px-3 py-2 text-center">
-//                   <button
-//                     onClick={() => handleRemoveRow(index)}
-//                     className="text-red-500"
-//                   >
-//                     -
-//                   </button>
-//                 </td>
-//               </tr>
-//             ))}
-//           </tbody>
-//         </table>
-//         <button
-//           onClick={handleAddRow}
-//           className="mt-4 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md"
-//         >
-//           Add Row
-//         </button>
-
-//         {/* Invoice Summary */}
-//         <div className="mt-6 flex justify-end space-x-8">
-//           <div>
-//             <label className="block text-sm font-medium">Total Tax</label>
-//             <p className="text-lg font-semibold">
-//               £
-//               {rows
-//                 .reduce(
-//                   (sum, row) =>
-//                     sum + (row.rate * row.quantity * row.taxPercentage) / 100,
-//                   0
-//                 )
-//                 .toFixed(2)}
-//             </p>
-//           </div>
-//           <div>
-//             <label className="block text-sm font-medium">Total Discount</label>
-//             <p className="text-lg font-semibold">
-//               £
-//               {rows
-//                 .reduce(
-//                   (sum, row) =>
-//                     sum + (row.rate * row.quantity * row.discount) / 100,
-//                   0
-//                 )
-//                 .toFixed(2)}
-//             </p>
-//           </div>
-//           <div>
-//             <label className="block text-sm font-medium">Grand Total</label>
-//             <p className="text-lg font-semibold">
-//               £{rows.reduce((sum, row) => sum + row.amount, 0).toFixed(2)}
-//             </p>
-//           </div>
-//         </div>
-//         <button
-//           onClick={generateInvoice}
-//           className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md"
-//         >
-//           Generate Invoice
-//         </button>
-//       </div>
-
-//       {/* Success Modal */}
-//       {isModalOpen && isInvoiceSaved && (
-//         <div className="fixed inset-0 bg-gray-700 bg-opacity-50 flex justify-center items-center z-50">
-//           <div className="bg-white p-6 rounded-md shadow-lg w-full max-w-3xl">
-//             <h3 className="text-xl font-semibold mb-4">
-//               Invoice Generated Successfully!
-//             </h3>
-//             <p className="text-md mb-4">
-//               Your invoice has been generated and saved.
-//             </p>
-//             <p>Invoice Number: {invoiceData.invoiceNumber}</p>
-//             <p>Grand Total: £{invoiceData.grandTotal}</p>
-//             <button
-//               onClick={() => setIsModalOpen(false)}
-//               className="mt-4 px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white rounded-md"
-//             >
-//               Close
-//             </button>
-//           </div>
-//         </div>
-//       )}
-//     </div>
-//   );
-// };
-
-// export default InvoiceForm;
