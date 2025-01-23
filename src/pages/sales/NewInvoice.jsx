@@ -189,103 +189,6 @@ const InvoiceForm = ({ addInvoice }) => {
     fetchClients(query);
   };
 
-  // const generateInvoice = async () => {
-  //   if (!selectedClient) {
-  //     alert("Please select or add a client before generating an invoice.");
-  //     return;
-  //   }
-
-  //   const doc = new jsPDF();
-
-  //   // Add header
-  //   doc.setFontSize(18);
-  //   doc.text("JLT Transport", 14, 20);
-  //   doc.setFontSize(12);
-  //   doc.text("Invoice", 170, 20);
-  //   doc.setFontSize(10);
-  //   doc.text(`Date: ${invoiceDate}`, 170, 30);
-
-  //   // Billing Info
-  //   doc.setFontSize(12);
-  //   doc.text("Billing Address:", 14, 40);
-  //   doc.setFontSize(10);
-  //   doc.text(`${billingAddress.name}`, 14, 45);
-  //   doc.text(`${billingAddress.address}`, 14, 50);
-  //   doc.text(`${billingAddress.city}, ${billingAddress.region}`, 14, 55);
-  //   doc.text(`${billingAddress.country}`, 14, 60);
-  //   doc.text(`Phone: ${billingAddress.phone}`, 14, 65);
-  //   doc.text(`Email: ${billingAddress.email}`, 14, 70);
-
-  //   // Shipping Info
-  //   doc.setFontSize(12);
-  //   doc.text("Shipping Address:", 120, 40);
-  //   doc.setFontSize(10);
-  //   doc.text(`${shippingAddress.name}`, 120, 45);
-  //   doc.text(`${shippingAddress.address}`, 120, 50);
-  //   doc.text(`${shippingAddress.city}, ${shippingAddress.region}`, 120, 55);
-  //   doc.text(`${shippingAddress.country}`, 120, 60);
-  //   doc.text(`Phone: ${shippingAddress.phone}`, 120, 65);
-  //   doc.text(`Email: ${shippingAddress.email}`, 120, 70);
-
-  //   // Table for invoice items
-  //   const tableRows = rows.map((row) => [
-  //     row.itemName,
-  //     row.rate.toFixed(2),
-  //     row.quantity,
-  //     (row.rate * row.quantity).toFixed(2),
-  //     ((row.taxPercentage * row.rate * row.quantity) / 100).toFixed(2),
-  //     row.discount.toFixed(2),
-  //     row.amount.toFixed(2),
-  //   ]);
-
-  //   const tableHeaders = [
-  //     "Item Name",
-  //     "Rate",
-  //     "Quantity",
-  //     "Subtotal",
-  //     "Tax",
-  //     "Discount",
-  //     "Total",
-  //   ];
-
-  //   doc.autoTable({
-  //     head: [tableHeaders],
-  //     body: tableRows,
-  //     startY: 80,
-  //   });
-
-  //   // Grand total
-  //   const grandTotal = rows
-  //     .reduce((sum, row) => sum + row.amount, 0)
-  //     .toFixed(2);
-  //   doc.setFontSize(12);
-  //   doc.text(`Grand Total: £${grandTotal}`, 14, doc.lastAutoTable.finalY + 10);
-
-  //   // Save the PDF
-  //   doc.save(`invoice_${invoiceNumber}.pdf`);
-
-  //   // Save invoice data to Firestore
-  //   try {
-  //     const invoiceDetails = {
-  //       invoiceNumber,
-  //       invoiceDate,
-  //       clientName: selectedClient.billingAddress.name, // Store the client name
-  //       rows, // Store the row data for items
-  //       grandTotal,
-  //     };
-
-  //     await addDoc(collection(db, "invoices"), invoiceDetails);
-  //     setInvoiceData(invoiceDetails); // Store the generated invoice data
-  //     setIsInvoiceSaved(true); // Update save status
-  //     setInvoiceNumber(invoiceNumber + 1); // Increment invoice number for next
-  //     setIsModalOpen(true); // Show modal after save
-  //   } catch (error) {
-  //     console.error("Error saving invoice: ", error);
-  //   }
-  // };
-
-  // Handle client selection from the search
-
   const generateInvoice = async () => {
     if (!selectedClient) {
       alert("Please select or add a client before generating an invoice.");
@@ -518,34 +421,6 @@ const InvoiceForm = ({ addInvoice }) => {
                 className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
               />
             </div>
-
-            {/* <div>
-              <label className="text-sm font-medium">Invoice Due Date</label>
-              <input
-                type="date"
-                value={invoiceDate}
-                onChange={(e) => setInvoiceDate(e.target.value)}
-                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium">Tax</label>
-              <select className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500">
-                <option value="on">On</option>
-                <option value="off">Off</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium">Discount</label>
-              <select className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500">
-                <option value="default">% Discount After TAX</option>
-                <option value="5">5%</option>
-                <option value="10">10%</option>
-                <option value="15">15%</option>
-              </select>
-            </div> */}
           </div>
 
           <div>

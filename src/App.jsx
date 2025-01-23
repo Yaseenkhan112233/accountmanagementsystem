@@ -29,6 +29,7 @@ import CustomerStatement from "./pages/Report/CustomerStatement";
 import SupplierStatement from "./pages/Report/SupplierStatement";
 import CalculateIncome from "./pages/Setting/CalculateIncome";
 import CalculateExpense from "./pages/Setting/CalculateExpemse";
+import Accounts from "./Acoounts/Accounts";
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -163,6 +164,12 @@ const App = () => {
             <Route
               path="/transactions/expense"
               element={<ProtectedRoute element={<Expense />} />}
+            />
+            {/* Acoounts Section */}
+            {/* Accounts Section */}
+            <Route
+              path="/accounts"
+              element={<ProtectedRoute element={<Accounts />} />}
             />
 
             {/* Reports Routes */}
