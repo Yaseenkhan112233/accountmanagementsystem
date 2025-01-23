@@ -350,6 +350,11 @@ const Sidebar = () => {
         path: "/transactions/new",
       },
       {
+        icon: <FileText size={20} />,
+        label: "Delete Transaction",
+        path: "/transactions/Deleted",
+      },
+      {
         icon: <DollarSign size={20} />,
         label: "Income",
         path: "/transactions/income",

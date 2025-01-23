@@ -564,7 +564,7 @@ const InvoiceForm = ({ addInvoice }) => {
                       type="number"
                       value={billingAddress.RecieveBalance}
                       onChange={(e) => handleInputChange(e, "billing")}
-                      placeholder="Recieve Balance"
+                      placeholder="Opening Balance"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md"
                     />
                     <textarea

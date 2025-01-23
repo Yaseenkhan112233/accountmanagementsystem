@@ -30,6 +30,7 @@ import SupplierStatement from "./pages/Report/SupplierStatement";
 import CalculateIncome from "./pages/Setting/CalculateIncome";
 import CalculateExpense from "./pages/Setting/CalculateExpemse";
 import Accounts from "./Acoounts/Accounts";
+import DeletedTransaction from "./pages/Transaction/DeletedTransaction";
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -156,6 +157,10 @@ const App = () => {
             <Route
               path="/transactions/new"
               element={<ProtectedRoute element={<NewTransaction />} />}
+            />
+            <Route
+              path="/transactions/Deleted"
+              element={<ProtectedRoute element={<DeletedTransaction />} />}
             />
             <Route
               path="/transactions/income"
