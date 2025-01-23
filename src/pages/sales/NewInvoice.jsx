@@ -12,6 +12,7 @@ const InvoiceForm = ({ addInvoice }) => {
     phone: "",
     email: "",
     address: "",
+    RecieveBalance: "",
     city: "",
     region: "",
     country: "",
@@ -90,17 +91,75 @@ const InvoiceForm = ({ addInvoice }) => {
   };
 
   // Handle form submission
+  // const handleAddClient = async (e) => {
+  //   e.preventDefault();
+
+  //   // Create a new client data object
+  //   const newClient = {
+  //     billingAddress,
+  //     shippingAddress,
+  //   };
+
+  //   // Add client data to Firestore
+  //   try {
+  //     await addDoc(collection(db, "clients"), newClient);
+
+  //     // Reset form states
+  //     setBillingAddress({
+  //       name: "",
+  //       phone: "",
+  //       email: "",
+  //       address: "",
+  //       city: "",
+  //       region: "",
+  //       country: "",
+  //       postBox: "",
+  //     });
+  //     setShippingAddress({
+  //       name: "",
+  //       phone: "",
+  //       email: "",
+  //       address: "",
+  //       city: "",
+  //       region: "",
+  //       country: "",
+  //       postBox: "",
+  //     });
+  //     setSameAsBilling(false);
+  //     closeModal();
+  //     fetchClients(searchQuery); // Re-fetch clients after adding a new one
+  //   } catch (e) {
+  //     console.error("Error adding client: ", e);
+  //   }
+  // };
   const handleAddClient = async (e) => {
     e.preventDefault();
 
-    // Create a new client data object
-    const newClient = {
-      billingAddress,
-      shippingAddress,
-    };
-
-    // Add client data to Firestore
+    // Validate if the phone number is already used
     try {
+      const querySnapshot = await getDocs(collection(db, "clients"));
+      const clientsData = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      // Check if any existing client has the same phone number
+      const duplicateClient = clientsData.find(
+        (client) => client.billingAddress.phone === billingAddress.phone
+      );
+
+      if (duplicateClient) {
+        alert("A client with this phone number already exists!");
+        return; // Prevent adding duplicate client
+      }
+
+      // Create a new client data object
+      const newClient = {
+        billingAddress,
+        shippingAddress,
+      };
+
+      // Add client data to Firestore
       await addDoc(collection(db, "clients"), newClient);
 
       // Reset form states
@@ -127,8 +186,11 @@ const InvoiceForm = ({ addInvoice }) => {
       setSameAsBilling(false);
       closeModal();
       fetchClients(searchQuery); // Re-fetch clients after adding a new one
+
+      alert("Client added successfully!");
     } catch (e) {
       console.error("Error adding client: ", e);
+      alert("An error occurred while adding the client. Please try again.");
     }
   };
 
@@ -188,28 +250,37 @@ const InvoiceForm = ({ addInvoice }) => {
     // Trigger fetch every time the search query changes
     fetchClients(query);
   };
+  useEffect(() => {
+    const fetchInvoiceNumber = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "invoiceNumber"));
+        if (!querySnapshot.empty) {
+          const doc = querySnapshot.docs[0]; // Assuming a single document for invoice number
+          setInvoiceNumber(doc.data().currentInvoiceNumber);
+        } else {
+          // If no invoice number exists in Firestore, start with a default value
+          setInvoiceNumber(1004);
+        }
+      } catch (error) {
+        console.error("Error fetching invoice number: ", error);
+        // Optionally use localStorage as a backup
+        const localInvoiceNumber = localStorage.getItem("invoiceNumber");
+        if (localInvoiceNumber) {
+          setInvoiceNumber(parseInt(localInvoiceNumber));
+        }
+      }
+    };
 
+    fetchInvoiceNumber();
+  }, []);
   const generateInvoice = async () => {
     if (!selectedClient) {
       alert("Please select or add a client before generating an invoice.");
       return;
     }
 
-    // Fetch the latest invoice number before generating the invoice
-    const fetchLatestInvoiceNumber = async () => {
-      const querySnapshot = await getDocs(collection(db, "invoices"));
-      let latestInvoiceNumber = 1004; // Starting invoice number (or replace with a dynamic value)
-      querySnapshot.forEach((doc) => {
-        const invoice = doc.data();
-        if (invoice.invoiceNumber >= latestInvoiceNumber) {
-          latestInvoiceNumber = invoice.invoiceNumber + 1;
-        }
-      });
-      setInvoiceNumber(latestInvoiceNumber); // Set the next available invoice number
-    };
-
-    // Get the latest invoice number
-    await fetchLatestInvoiceNumber();
+    // Increment invoice number before use
+    const currentInvoiceNumber = invoiceNumber;
 
     const doc = new jsPDF();
 
@@ -278,12 +349,12 @@ const InvoiceForm = ({ addInvoice }) => {
     doc.text(`Grand Total: £${grandTotal}`, 14, doc.lastAutoTable.finalY + 10);
 
     // Save the PDF
-    doc.save(`invoice_${invoiceNumber}.pdf`);
+    doc.save(`invoice_${currentInvoiceNumber}.pdf`);
 
     // Save invoice data to Firestore
     try {
       const invoiceDetails = {
-        invoiceNumber,
+        invoiceNumber: currentInvoiceNumber,
         invoiceDate,
         clientName: selectedClient.billingAddress.name, // Store the client name
         rows, // Store the row data for items
@@ -294,10 +365,29 @@ const InvoiceForm = ({ addInvoice }) => {
       };
 
       await addDoc(collection(db, "invoices"), invoiceDetails);
-      setInvoiceData(invoiceDetails); // Store the generated invoice data
-      setIsInvoiceSaved(true); // Update save status
-      setInvoiceNumber(invoiceNumber + 1); // Increment invoice number for next
-      setIsModalOpen(true); // Show modal after save
+
+      // Update invoice number in Firestore and localStorage
+      await addDoc(collection(db, "invoiceNumber"), {
+        currentInvoiceNumber: currentInvoiceNumber + 1,
+      });
+
+      // Also update localStorage
+      localStorage.setItem("invoiceNumber", currentInvoiceNumber + 1);
+
+      // Increment invoice number for the next invoice
+      setInvoiceNumber((prev) => prev + 1);
+
+      // Clear all fields in rows
+      setRows([
+        {
+          itemName: "",
+          quantity: 1,
+          rate: 0,
+          taxPercentage: 0,
+          discount: 0,
+          amount: 0,
+        },
+      ]);
     } catch (error) {
       console.error("Error saving invoice: ", error);
     }
@@ -467,6 +557,14 @@ const InvoiceForm = ({ addInvoice }) => {
                       value={billingAddress.email}
                       onChange={(e) => handleInputChange(e, "billing")}
                       placeholder="Email"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    />
+                    <input
+                      name="RecieveBalance"
+                      type="number"
+                      value={billingAddress.RecieveBalance}
+                      onChange={(e) => handleInputChange(e, "billing")}
+                      placeholder="Recieve Balance"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md"
                     />
                     <textarea
