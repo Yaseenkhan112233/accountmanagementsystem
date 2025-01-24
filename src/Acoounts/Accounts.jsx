@@ -170,12 +170,12 @@ function Accounts() {
           <thead>
             <tr className="bg-gray-100">
               <th className="border border-gray-300 px-3 py-2">Client Name</th>
-              <th className="border border-gray-300 px-3 py-2">
+              {/* <th className="border border-gray-300 px-3 py-2">
                 Current Balance
               </th>
               <th className="border border-gray-300 px-3 py-2">
                 Total Invoices
-              </th>
+              </th> */}
               <th className="border border-gray-300 px-3 py-2">
                 Receiving Amount
               </th>
@@ -197,12 +197,10 @@ function Accounts() {
                   <td className="border border-gray-300 px-3 py-2">
                     {client.billingAddress.name}
                   </td>
-                  <td className="border border-gray-300 px-3 py-2">
-                    £{currentBalance.toFixed(2)}
-                  </td>
-                  <td className="border border-gray-300 px-3 py-2">
-                    £{totalInvoices.toFixed(2)}
-                  </td>
+                  {/* <td className="border border-gray-300 px-3 py-2">
+                      £{currentBalance.toFixed(2)}
+                    </td> */}
+
                   <td
                     className={`border border-gray-300 px-3 py-2 ${
                       remainingBalance < 0 ? "text-red-500" : "text-green-500"
